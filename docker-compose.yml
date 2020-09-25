@@ -1,0 +1,61 @@
+version: "3"
+services:
+  php-ldap:
+    build: .
+    ports:
+      - "8000:80"
+    volumes:
+      - ./www:/var/www
+      - ./config/php/php.ini:/usr/local/etc/php/conf.d/php.ini
+      - ./config/php/ssmtp.conf:/etc/ssmtp/ssmtp.conf
+    working_dir: /var/www/html
+    container_name: php-ldap
+    links:
+      - mariadb-ldap
+    container_name: php-ldap
+
+  mariadb-ldap:
+    image: mariadb:10.4
+    environment:
+      MYSQL_ROOT_PASSWORD: password
+      MYSQL_USER: dev
+      MYSQL_PASSWORD: password
+      MYSQL_DATABASE: dev
+    ports:
+      - "3307:3306"
+    volumes:
+      - ./data/mariadb:/var/lib/mysql
+    container_name: mariadb-ldap
+
+  smtp:
+    image: schickling/mailcatcher
+    ports:
+      - "1025:1025"
+      - "1080:1080"
+
+  adminer:
+    image: adminer
+    restart: always
+    ports:
+      - "8080:8080"
+
+  ldap-server:
+    image: osixia/openldap:latest
+    restart: always
+    container_name: ldap-host
+    environment:
+      LDAP_ORGANISATION: "gosign"
+      LDAP_DOMAIN: "example.com"
+      LDAP_ADMIN_PASSWORD: "password"
+
+  ldap-admin:
+    image: osixia/phpldapadmin:latest
+    restart: always
+    container_name: ldap-admin
+    environment:
+      PHPLDAPADMIN_LDAP_HOSTS: "ldap"
+      PHPLDAPADMIN_HTTPS: "false"
+    ports:
+      - "8888:80"
+    links:
+      - "ldap-server:ldap"
